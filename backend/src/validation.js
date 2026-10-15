@@ -27,3 +27,17 @@ export const createRequestSchema = z.object({
   quantity: z.number().int().positive('Quantity must be at least 1'),
   reason: z.enum(REASONS),
 })
+
+const emptyToUndefined = (v) => (v === '' ? undefined : v)
+
+export const SORT_FIELDS = ['created_at', 'updated_at', 'customer_name', 'reference', 'status']
+
+export const listQuerySchema = z.object({
+  q: z.preprocess(emptyToUndefined, z.string().trim().max(100).optional()),
+  status: z.preprocess(emptyToUndefined, z.enum(STATUSES).optional()),
+  reason: z.preprocess(emptyToUndefined, z.enum(REASONS).optional()),
+  sort: z.enum(SORT_FIELDS).default('created_at'),
+  order: z.enum(['asc', 'desc']).default('desc'),
+  page: z.coerce.number().int().min(1).default(1),
+  pageSize: z.coerce.number().int().min(1).max(50).default(20),
+})
