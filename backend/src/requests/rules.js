@@ -14,3 +14,6 @@ export const allowedActions = (status) => ({
   canEdit: EDITABLE_STATUSES.includes(status),
   canRemove: REMOVABLE_STATUSES.includes(status),
 })
+
+export const sourcesFor = (to) =>
+  Object.keys(TRANSITIONS).filter((from) => TRANSITIONS[from].includes(to))

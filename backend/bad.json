@@ -1,9 +1,0 @@
-{
-  "customerName": "",
-  "customerEmail": "not-an-email",
-  "orderNumber": "ORD-1002",
-  "itemSku": "SKU-1",
-  "itemName": "Bag",
-  "quantity": 0,
-  "reason": "broken"
-}

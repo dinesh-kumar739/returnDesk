@@ -7,6 +7,8 @@ import {
   updateRequestSchema,
   createNoteSchema,
   listQuerySchema,
+  transitionSchema,
+
 } from '../validation.js'
 import {
   createRequest,
@@ -15,9 +17,22 @@ import {
   updateRequest,
   listNotes,
   addNote,
+  transitionRequest,
+  removeRequest,
 } from './service.js'
 
 const router = Router()
+
+router.post('/:id/transition', asyncHandler(async (req, res) => {
+  const id = parseId(req.params.id)
+  const input = parse(transitionSchema, req.body)
+  res.json({ data: await transitionRequest(id, input) })
+}))
+
+router.delete('/:id', asyncHandler(async (req, res) => {
+  await removeRequest(parseId(req.params.id))
+  res.status(204).end()
+}))
 
 router.get('/', asyncHandler(async (req, res) => {
   const query = parse(listQuerySchema, req.query)

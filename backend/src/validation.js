@@ -57,3 +57,27 @@ export const createNoteSchema = z.object({
   author: text.max(80),
   body: text.max(2000),
 })
+
+export const transitionSchema = z
+  .object({
+    to: z.enum(STATUSES),
+    resolution: z.enum(RESOLUTIONS).optional(),
+    refundAmount: z.number().min(0.01, 'Refund amount must be greater than zero').max(99999999.99).optional(),
+  })
+  .superRefine((data, ctx) => {
+    const issue = (path, message) => ctx.addIssue({ code: 'custom', path: [path], message })
+
+    if (data.to === 'approved') {
+      if (!data.resolution) {
+        issue('resolution', 'A resolution is required to approve a request')
+      } else if (data.resolution === 'refund' && data.refundAmount === undefined) {
+        issue('refundAmount', 'A refund amount greater than zero is required for a refund')
+      } else if (data.resolution !== 'refund' && data.refundAmount !== undefined) {
+        issue('refundAmount', 'A refund amount is only allowed when the resolution is refund')
+      }
+      return
+    }
+
+    if (data.resolution !== undefined) issue('resolution', 'A resolution can only be set when approving')
+    if (data.refundAmount !== undefined) issue('refundAmount', 'A refund amount can only be set when approving')
+  })

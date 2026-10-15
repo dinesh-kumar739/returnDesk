@@ -1,7 +1,7 @@
 import { pool } from '../db.js'
 import { conflict, notFound } from '../errors.js'
 import { toRequest, toNote } from './mapper.js'
-import { allowedActions, EDITABLE_STATUSES } from './rules.js'
+import { allowedActions, EDITABLE_STATUSES, REMOVABLE_STATUSES, TRANSITIONS, sourcesFor } from './rules.js'
 
 const withActions = (request) => ({ ...request, allowedActions: allowedActions(request.status) })
 
@@ -169,4 +169,54 @@ export async function addNote(id, { author, body }) {
   )
   if (!rows[0]) throw notFound('Request not found')
   return toNote(rows[0])
+}
+
+export async function transitionRequest(id, { to, resolution, refundAmount }) {
+  const sources = sourcesFor(to)
+  let query
+
+  if (to === 'approved') {
+    query = {
+      text: `UPDATE return_requests
+             SET status = $1, resolution = $2, refund_amount = $3, updated_at = now()
+             WHERE id = $4 AND deleted_at IS NULL AND status = ANY($5::request_status[])
+             RETURNING *`,
+      values: [to, resolution, resolution === 'refund' ? refundAmount : null, id, sources],
+    }
+  } else {
+    query = {
+      text: `UPDATE return_requests
+             SET status = $1, updated_at = now()
+             WHERE id = $2 AND deleted_at IS NULL AND status = ANY($3::request_status[])
+             RETURNING *`,
+      values: [to, id, sources],
+    }
+  }
+
+  const { rows } = await pool.query(query)
+  if (rows[0]) return withActions(toRequest(rows[0]))
+
+  const current = await fetchLive(id)
+  throw conflict(
+    'ILLEGAL_TRANSITION',
+    `A request cannot move from ${current.status} to ${to}`,
+    { from: current.status, to, allowed: TRANSITIONS[current.status] }
+  )
+}
+
+export async function removeRequest(id) {
+  const { rowCount } = await pool.query(
+    `UPDATE return_requests
+     SET deleted_at = now(), updated_at = now()
+     WHERE id = $1 AND deleted_at IS NULL AND status = ANY($2::request_status[])`,
+    [id, REMOVABLE_STATUSES]
+  )
+  if (rowCount) return
+
+  const current = await fetchLive(id)
+  throw conflict(
+    'REMOVAL_NOT_ALLOWED',
+    `Only open or rejected requests can be removed, this one is ${current.status}`,
+    { status: current.status }
+  )
 }
