@@ -5,8 +5,13 @@ import { pool } from './db.js'
 import { asyncHandler, errorHandler, notFoundHandler } from './errorHandler.js'
 import requestsRouter from './requests/routes.js'
 
+const allowedOrigins = (process.env.FRONTEND_URL ?? '')
+  .split(',')
+  .map((origin) => origin.trim())
+  .filter(Boolean)
+
 const app = express()
-app.use(cors())
+app.use(cors({ origin: allowedOrigins.length ? allowedOrigins : true }))
 app.use(express.json({ limit: '100kb' }))
 
 app.get('/api/health', asyncHandler(async (req, res) => {
