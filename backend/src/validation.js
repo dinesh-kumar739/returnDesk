@@ -1,5 +1,5 @@
 import { z } from 'zod'
-import { unprocessable } from './errors.js'
+import { unprocessable , badRequest} from './errors.js'
 
 export const REASONS = ['damaged', 'wrong_item', 'size_issue', 'not_as_described', 'changed_mind']
 export const STATUSES = ['open', 'in_review', 'approved', 'rejected', 'completed']
@@ -40,4 +40,20 @@ export const listQuerySchema = z.object({
   order: z.enum(['asc', 'desc']).default('desc'),
   page: z.coerce.number().int().min(1).default(1),
   pageSize: z.coerce.number().int().min(1).max(50).default(20),
+})
+
+export function parseId(value) {
+  if (!/^[1-9]\d{0,14}$/.test(value)) {
+    throw badRequest('Request id must be a positive integer')
+  }
+  return value
+}
+
+export const updateRequestSchema = createRequestSchema
+  .partial()
+  .refine((data) => Object.keys(data).length > 0, 'Provide at least one field to update')
+
+export const createNoteSchema = z.object({
+  author: text.max(80),
+  body: text.max(2000),
 })

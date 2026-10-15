@@ -17,3 +17,12 @@ export function toRequest(row) {
     updatedAt: row.updated_at,
   }
 }
+
+export function toNote(row) {
+  return {
+    id: row.id,
+    author: row.author,
+    body: row.body,
+    createdAt: row.created_at,
+  }
+}
